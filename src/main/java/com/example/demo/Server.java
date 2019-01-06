@@ -1,9 +1,13 @@
 package com.example.demo;
 
 
+import com.example.demo.com.example.entity.Order;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.core.*;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
@@ -47,11 +51,25 @@ public class  Server{
         for (int i = 1; i <= 100; i++) {
             sendStr = "第[" + i + "]个 hello  --" + new Date();
             logger.info("HelloSender: " + sendStr);
+            Order order = new Order();
+            order.setId(i+"");
+            sendMessage("exchange_test","order.a", order,i);
+        }
+        return context;
+    }
+    @RequestMapping("/sendMq_str")
+    @ResponseBody
+    public String send_str(String name) throws Exception {
+        String context = "hello " + name + " --" + new Date();
+        String sendStr;
+        for (int i = 1; i <= 100; i++) {
+            sendStr = "第[" + i + "]个 hello  --" + new Date();
+            logger.info("HelloSender: " + sendStr);
+
             sendMessage("myqueue", sendStr,i);
         }
         return context;
     }
-
     /**
      * 方式一：动态声明exchange和queue它们的绑定关系  rabbitAdmin
      *
@@ -82,13 +100,26 @@ public class  Server{
      * 发送消息
      *
      * @param queueName
-     * @param message
+     * @param order
      * @throws Exception
      */
-    public void sendMessage(String queueName, String message,int id) throws Exception {
+    public void sendMessage(String queueName,String key, Order order, int id) throws Exception {
         declareBinding(queueName, queueName,id);
         CorrelationData correlationData = new CorrelationData();
         correlationData.setId(id+"");
-        rabbitAdmin.getRabbitTemplate().convertAndSend(queueName, queueName, message,correlationData);
+        rabbitAdmin.getRabbitTemplate().convertAndSend(queueName, key, order,correlationData);
+    }
+    /**
+     * 发送消息_字符串
+     *
+     * @param queueName
+     * @param str
+     * @throws Exception
+     */
+    public void sendMessage(String queueName, String str, int id) throws Exception {
+       // declareBinding(queueName, queueName,id);
+        CorrelationData correlationData = new CorrelationData();
+        correlationData.setId(id+"");
+        rabbitAdmin.getRabbitTemplate().convertAndSend(queueName, queueName, str,correlationData);
     }
 }
